@@ -1,0 +1,26 @@
+# Frontend
+node_modules/
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Local configuration and runtime data
+.env
+.env.*
+!.env.example
+postgres-data/
+redis-data/
+
+# Editor and system files
+.DS_Store
+.idea/
+.vscode/
