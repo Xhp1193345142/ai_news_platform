@@ -49,16 +49,23 @@ cp .env.example .env
 
 请在共享或生产环境中替换 `.env` 中的 `JWT_SECRET_KEY`、数据库密码等默认值。
 
-### 2. 启动 API、数据库和 Redis
+### 2. 启动前端、API、数据库、Redis 和 MinIO
 
 ```bash
 docker compose up --build -d
-docker compose exec api alembic upgrade head
+docker compose exec backend alembic upgrade head
+docker compose exec backend python scripts/import_openai_fixtures.py
 ```
+
+Docker 前端访问地址：`http://127.0.0.1:8080/`
 
 API 健康检查地址：`http://127.0.0.1:8000/api/v1/health`
 
-### 3. 启动前端
+MinIO 控制台：`http://127.0.0.1:9001/`
+
+前端由 Nginx 提供生产构建，并将 `/api/v1` 反向代理到 Compose 中的 `backend` 服务。若需要修改宿主机端口，可在 `.env` 中设置 `FRONTEND_PORT`。
+
+### 3. 可选：前端本地热更新开发
 
 ```bash
 npm install
@@ -111,8 +118,10 @@ npm run check
 后端测试（Docker 服务已启动时）：
 
 ```bash
-docker compose exec api /app/.venv/bin/pytest
+docker compose exec backend /app/.venv/bin/pytest
 ```
+
+所有改动通过 Pull Request 进入 `main`：本地检查 → Draft PR → GitHub Actions → Code Review → Squash merge。完整规范与仓库分支保护设置见[开发文档.md](开发文档.md#开发review-与合并流程)。
 
 项目的详细约束与设计规范请参阅：
 

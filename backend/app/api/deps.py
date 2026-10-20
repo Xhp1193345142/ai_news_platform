@@ -12,7 +12,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 DbSession = Annotated[AsyncSession, Depends(get_db_session)]
 
 
-async def get_current_user(session: DbSession, token: Annotated[str, Depends(oauth2_scheme)]) -> User:
+async def get_current_user(
+    session: DbSession, token: Annotated[str, Depends(oauth2_scheme)]
+) -> User:
     try:
         user_id = decode_access_token(token)
     except ValueError as error:

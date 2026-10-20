@@ -35,7 +35,9 @@ async def login(payload: LoginRequest, session: DbSession) -> TokenPairResponse:
     try:
         user = await authenticate_user(session, email=str(payload.email), password=payload.password)
     except InvalidCredentialsError as error:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="邮箱或密码错误") from error
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="邮箱或密码错误"
+        ) from error
     return await issue_token_pair(session, user)
 
 
@@ -44,7 +46,9 @@ async def refresh(payload: RefreshRequest, session: DbSession) -> TokenPairRespo
     try:
         return await rotate_refresh_token(session, payload.refresh_token)
     except InvalidRefreshTokenError as error:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="刷新令牌无效或已过期") from error
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="刷新令牌无效或已过期"
+        ) from error
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

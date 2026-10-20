@@ -1,0 +1,19 @@
+{
+  "externalId": "samsung-electronics-chatgpt-codex-deployment",
+  "canonicalUrl": "https://openai.com/zh-Hans-CN/index/samsung-electronics-chatgpt-codex-deployment/",
+  "title": "三星电子为员工部署 ChatGPT 和 Codex",
+  "subtitle": "这是 OpenAI 迄今规模最大的部署之一",
+  "summary": "三星电子向韩国全体员工及全球 Device eXperience 员工部署 ChatGPT Enterprise 和 Codex。",
+  "authorName": "OpenAI",
+  "publishedAt": "2026-06-21T00:00:00Z",
+  "language": "zh-Hans-CN",
+  "topics": ["公司", "企业 AI", "Codex"],
+  "blocks": [
+    {"id":"sam-key","type":"key_points","data":{"items":["ChatGPT Enterprise 和 Codex 面向相关员工开放","这是 OpenAI 最大规模企业上线之一","使用范围覆盖研发、制造、营销与企业职能"]}},
+    {"id":"sam-body","type":"section","data":{"title":"全公司采用 AI","paragraphs":["三星电子计划在技术和非技术工作中使用 ChatGPT 与 Codex，覆盖软件开发、营销、产品开发和制造。","员工可利用 ChatGPT 搜索分析信息、起草文档、开发创意和解读数据，也可用 Codex 构建代码、内部工具、网站和自动化工作流。"]}},
+    {"id":"sam-quote","type":"quote","data":{"text":"OpenAI 将与三星电子合作，帮助员工更快地从想法走向执行并解决复杂问题。","attribution":"Harrison Kim，OpenAI 韩国总经理"}},
+    {"id":"sam-context","type":"paragraph","data":{"text":"双方此前已在先进存储半导体等 AI 基础设施领域合作，此次合作扩展至员工队伍转型和全公司 AI 采用。"}},
+    {"id":"sam-source","type":"source_link","data":{"label":"在 OpenAI 阅读完整原文","url":"https://openai.com/zh-Hans-CN/index/samsung-electronics-chatgpt-codex-deployment/"}}
+  ],
+  "metrics": {}
+}

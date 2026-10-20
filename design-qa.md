@@ -1,29 +1,53 @@
-# AI Signal authentication visual QA
+**Source visual truth**
 
-## Comparison target
+- `/var/folders/fn/12h8730x4kscvy_k4shks6zc0000gn/T/codex-clipboard-a7224634-17ce-4a06-9866-90f7d3924a1e.png`
+- Source pixels: 1380 × 1478.
+- Target state: OpenAI GPT-5.6 article, interactive demo group with the “交互式波的干涉” tab selected.
 
-- Source visual truth: `/Users/haopu_xi/.codex/attachments/8a2603bd-239a-4187-9d54-eacba0a4a5a3/pasted-text.txt` and the accompanying “Cyberpunk Black Hole with Glitch FX” screenshot.
-- Prototype: `http://127.0.0.1:5173/`, desktop login default state.
-- Implementation choice: preserve the source’s neon event horizon, cyan/magenta accretion disk, sparse star field, Bloom, and slow orbital flow; remove its grid floor, dense rainbow particles, trigger button, and full-page demo chrome to serve the supplied authentication composition.
+**Implementation evidence**
 
-## Findings and adjustments
+- Local implementation: `http://localhost:8080/`.
+- Intended comparison viewport: 1380 × 1478 CSS px, device scale factor 1.
+- Implementation screenshot: unavailable. The in-app browser rejected the local page during the required post-build capture because of its URL security policy.
+- Density normalization: not applicable because the implementation capture was blocked.
 
-- The former raster black-hole foreground and its CSS masks were removed from the active experience. The black hole is now one transparent WebGL canvas above a still deep-space image, so the cosmic background and black hole remain independent layers.
-- The accretion disk is the only prominent moving element. Its flow and orbit are deliberately slow; the page background does not breathe or drift.
-- The desktop authentication panel remains capped at 27.5rem to address the reported oversized panel at shorter desktop heights.
-- `prefers-reduced-motion` renders a static black-hole frame instead of continuing the animation.
+**Findings**
 
-## Checks
+- [P1] Browser-rendered comparison is unavailable
+  Location: GPT-5.6 article interactive demo group.
+  Evidence: the source image was opened at its original size, but the in-app browser blocked the local implementation capture.
+  Impact: typography, spacing, active-tab styling, media crop, and responsive overflow cannot receive the required same-viewport visual comparison.
+  Fix: refresh the already-open local preview once browser access is available, select “交互式波的干涉”, capture at 1380 × 1478, and compare it with the source image in one combined view.
 
-- [x] The WebGL canvas exists, is correctly sized, and sits alongside the authentication panel.
-- [x] The compact panel width guard passes in the local prototype.
-- [x] `npm run build` passes.
-- [x] `npm run test:sites` passes (4 tests).
-- [x] Login/register switch, validation, password visibility, and success-state transition remain in the Vue UI.
+**Implemented structure**
 
-## Follow-up polish
+- Three demo videos are stored as one `media_tabs` content block.
+- The tab list uses semantic `tablist` / `tab` / `tabpanel` roles.
+- Only the active Vimeo player is rendered in the panel.
+- The selected state uses a dark filled capsule inside an outlined pill container.
+- Narrow viewports keep the tab labels on one line and allow horizontal scrolling.
 
-- Tune the cyan-to-magenta ratio and Bloom strength against the user’s preferred screenshot after a visual pass in Figma.
-- Replace the simulated successful login with FastAPI authentication when the backend is introduced.
+**Interaction checks**
 
-final result: passed
+- Database order verified: one standalone introduction video followed later by one interactive media-tab group.
+- Automated frontend build and package tests passed.
+- Backend tests and lint passed.
+- Browser tab switching and console-error checks: blocked by the browser URL policy.
+
+**Comparison history**
+
+- Initial mismatch: four Vimeo videos were rendered as a continuous vertical list.
+- Fix: split the introduction video from the three related demos and render the demos as a functional tab group in the source article position.
+- Post-fix visual evidence: blocked as described above.
+
+**Implementation Checklist**
+
+- Capture the implementation at the source viewport when browser access resumes.
+- Verify the three tabs, selected fill, rounded outer border, and one-player-only behavior.
+- Check browser console errors after switching all three tabs.
+
+**Follow-up Polish**
+
+- None recorded until the required visual comparison can be completed.
+
+final result: blocked

@@ -18,4 +18,4 @@ ENV PYTHONPATH=/srv/ai-signal
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "if [ -x /app/.venv/bin/python ]; then exec /app/.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000; else exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8000; fi"]
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

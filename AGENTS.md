@@ -39,4 +39,30 @@ When implementing from a selected generated mock, treat that image as the source
 - 控制台数据卡片采用深色半透明毛玻璃，与背景融合但不牺牲正文对比度；避免黑洞高亮直接穿透文字和状态区域。
 - 空状态展示应使用明确业务文案（例如“等待首个来源 / 0 个来源已连接”），禁止无业务含义的 `00 ACTIVE` 装饰仪表。
 
+## 协作与提交流程
+
+- 所有业务改动必须经 feature/fix/docs 分支和 Pull Request 进入 `main`；提交前运行 `npm run check`，后端变更还需运行 `cd backend && pytest` 与 `ruff check .`。
+- 合并前必须通过 GitHub Actions 的全部检查，获得 Code Owner Review，且没有未解决的 Review 评论；使用 Squash merge。
+
+## 已确认的黑洞场景偏好
+
+- 用户提供的原版 CodePen 场景代码是前端背景的唯一实现基准：保留其星空、吸积盘噪声着色、旋转、Bloom、引力透镜、glitch 和 OrbitControls；不要叠加静态深空图片或用简化着色器替换。
+- 可在原版星空中增加一条低对比的青紫银河星带作为远景层；当前确认走向为左上至右下的斜纵向。它必须弱于黑洞和吸积盘，不能影响登录卡片与文案的可读性。
+- 登录页当前确认的黑洞、银河带、星空、亮度与场景姿态是所有页面的统一背景基准；路由/登录状态切换只能替换前景内容，不得改变该背景构图或额外压暗它。
+- 登录与控制台之间必须预留稳定的页面滚动条空间，避免控制台内容出现滚动条时改变 Canvas 宽高比，造成黑洞位置跳变。
+- Canvas 的黑洞 Group 姿态、缩放与 OrbitControls 在整个会话中固定。登录页黑洞位于左侧构图；点击登录后仅使用相机取景中心的平移，让黑洞在 glitch 中归心，并在效果结束前基本到位；不得移动/旋转黑洞本体，不得让控制台中出现明显平移、闪切或大小改变。
+- Canvas 与深空蒙层必须使用 `position: fixed` 和视口尺寸；控制台导航或内容高度增加不得拉伸背景画布、改变相机纵横比或导致黑洞位置变化。
+- “信号流”是独立的 AI 资讯浏览页面，提供来源接入后的事件时间流、主题筛选、摘要、来源和收藏入口；在尚无来源时，页面必须明确展示零事件及下一步，而不能使用虚构资讯数据。
+- 控制台导航使用顶部现代化毛玻璃栏（品牌左、导航中、用户操作右）；数据卡片应增加足够的深色毛玻璃以和高亮背景协调，同时确保正文不被吸积盘穿透。登录成功过渡中，控制台应在不超过 1 秒的 glitch 后段平滑淡入并轻微上移，禁止 glitch 结束后闪切首页或改变背景构图。
+- 黑洞采用原版 CodePen 场景姿态：事件视界半径 `1.3`、吸积盘倾角 `π/3`；用户确认需要略宽的盘面，因此吸积盘半径为 `1.5 → 9.5`。允许用户使用 OrbitControls 拖拽调整视角、滚轮缩放；不得强行锁死场景或以镜像盘面替代原版透视结构。
+- 登录成功使用原版短暂 glitch 与表单淡出衔接控制台。
+- 控制台必须沿用登录页的同一黑洞、相机和吸积盘姿态；只允许缩小并后退作为背景氛围，不得切换成不同的黑洞造型或仅剩事件视界圆环。
+- 信号流页不展示 `EVENT HORIZON / 信号流` 之类重复路径；页面标题和顶栏导航已经提供足够定位信息。
+- 信号流分类采用来源官网的分类体系。OpenAI 当前筛选项为公司、研究、产品、安全、工程、安全防护、全球事务、AI 采用、应用 AI；文章详情在标题前按“发布日期 + 官网分类”展示。
+- 采集文章不得由模型改写或生成摘要冒充正文。OpenAI 内容必须由专用采集器和无损格式化器按源顺序转换，原始正文或快照归档到对象存储，并保留原文链接。
+- OpenAI 文章中的交互演示媒体必须保留官网编排语义：同一演示组使用顶部胶囊选项卡切换，下方只展示当前媒体；不得把组内视频拆成连续纵向列表。
+- 每个资讯平台在接入前必须建立并维护 `来源布局画像.md` 与代码侧 `SourceLayoutProfile`，记录原生组件、分组、顺序、媒体归档和降级规则；格式化器不得静默丢弃图表、轮播或平台专属组件。
+- OpenAI 评测图表必须从 RSC payload 保留原始 Vega-Lite spec，按官网 tab 组展示；不得用摘要、普通表格或自造图形替代互动图表。
+- 多平台采集采用“平台 Collector + 平台 Formatter + SourceLayoutProfile + fixture”确定性链路；Agent 只能辅助未知组件识别、质量检查和规则草稿生成，不得直接改写正文或写入生产文章。
+
 Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts/prepare-sites-build.mjs`, and `tests/sites-worker.test.mjs` intact so the same local prototype can be handed to Sites. Before a Sites handoff, run `npm run check`; the build must leave `dist/client/index.html`, `dist/server/index.js`, and `dist/.openai/hosting.json`.
