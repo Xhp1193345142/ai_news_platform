@@ -16,6 +16,12 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://ai_signal:change-me@localhost:5432/ai_signal"
     sync_database_url: str = "postgresql+psycopg://ai_signal:change-me@localhost:5432/ai_signal"
     redis_url: str = "redis://localhost:6379/0"
+    s3_endpoint_url: str = "http://localhost:9000"
+    s3_access_key: str = "ai_signal_admin"
+    s3_secret_key: str = "change-me-minio-secret"
+    s3_public_bucket: str = "ai-signal-public"
+    s3_archive_bucket: str = "ai-signal-archive"
+    s3_region: str = "us-east-1"
     jwt_secret_key: str = "replace-with-a-long-random-secret-before-use"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 15

@@ -24,7 +24,9 @@ def create_access_token(user_id: UUID) -> tuple[str, int]:
     expires_in = settings.access_token_expire_minutes * 60
     expires_at = datetime.now(UTC) + timedelta(seconds=expires_in)
     payload = {"sub": str(user_id), "type": "access", "exp": expires_at, "iat": datetime.now(UTC)}
-    return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm), expires_in
+    return jwt.encode(
+        payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm
+    ), expires_in
 
 
 def decode_access_token(token: str) -> UUID:
