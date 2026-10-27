@@ -10,9 +10,10 @@ async function api(path) {
   return payload;
 }
 
-export function fetchArticles(category = "全部") {
+export function fetchArticles(category = "全部", sourceKey = "") {
   const query = new URLSearchParams({ limit: "20" });
   if (category !== "全部") query.set("category", category);
+  if (sourceKey) query.set("source_key", sourceKey);
   return api(`/articles?${query}`);
 }
 export function fetchArticle(id) { return api(`/articles/${id}`); }

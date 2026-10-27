@@ -16,9 +16,10 @@ async def articles_index(
     cursor: str | None = None,
     limit: int = Query(20, ge=1, le=50),
     category: str | None = Query(default=None, min_length=1, max_length=40),
+    source_key: str | None = Query(default=None, min_length=1, max_length=64),
 ) -> ArticlePage:
     try:
-        items, next_cursor = await list_articles(session, limit, cursor, category)
+        items, next_cursor = await list_articles(session, limit, cursor, category, source_key)
     except ValueError as error:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="分页游标无效"

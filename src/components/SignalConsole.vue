@@ -13,7 +13,9 @@ const selectedArticle = ref(null);
 const loading = ref(true);
 const error = ref("");
 const selectedCategory = ref("全部");
+const selectedSource = ref("");
 const selectedMediaTabs = ref({});
+const activeSources = computed(() => sources.value.filter((source) => source.is_active));
 const categories = ["全部", "公司", "研究", "产品", "安全", "工程", "安全防护", "全球事务", "AI 采用", "应用 AI"];
 const views = [
   { label: "概览", icon: "solar:widget-5-linear" },
@@ -26,7 +28,10 @@ async function loadContent() {
   loading.value = true;
   error.value = "";
   try {
-    const [articlePage, sourceItems] = await Promise.all([fetchArticles(), fetchSources()]);
+    const [articlePage, sourceItems] = await Promise.all([
+      fetchArticles(selectedCategory.value, selectedSource.value),
+      fetchSources(),
+    ]);
     articles.value = articlePage.items;
     sources.value = sourceItems;
   } catch (loadError) {
@@ -46,10 +51,21 @@ async function openArticle(article) {
 async function selectCategory(category) {
   if (selectedCategory.value === category) return;
   selectedCategory.value = category;
+  await refreshArticles();
+}
+
+async function selectSource(sourceKey) {
+  if (selectedSource.value === sourceKey) return;
+  selectedSource.value = sourceKey;
+  selectedCategory.value = "全部";
+  await refreshArticles();
+}
+
+async function refreshArticles() {
   loading.value = true;
   error.value = "";
   try {
-    articles.value = (await fetchArticles(category)).items;
+    articles.value = (await fetchArticles(selectedCategory.value, selectedSource.value)).items;
   } catch (loadError) {
     error.value = loadError instanceof Error ? loadError.message : "分类加载失败";
   } finally {
@@ -165,7 +181,19 @@ onMounted(loadContent);
 
       <section v-else-if="activeView === '信号流'" class="event-explorer" aria-label="AI 事件浏览">
         <header class="event-explorer-header"><div><p class="console-kicker">AI NEWS INTELLIGENCE</p><h1>信号流</h1><p>来源真实、结构统一、原文可追溯。</p></div><div class="event-count"><strong>{{ articles.length }}</strong><span>个可浏览事件</span></div></header>
-        <nav class="event-toolbar" aria-label="文章分类筛选"><div class="filter-group"><button v-for="category in categories" :key="category" type="button" class="filter-chip" :class="{ active: selectedCategory === category }" :aria-pressed="selectedCategory === category" @click="selectCategory(category)">{{ category }}</button></div></nav>
+        <nav class="event-toolbar" aria-label="信号流筛选">
+          <div class="source-filter-row" role="group" aria-label="按来源筛选">
+            <span class="filter-label">来源</span>
+            <div class="filter-group">
+              <button type="button" class="filter-chip" :class="{ active: selectedSource === '' }" :aria-pressed="selectedSource === ''" @click="selectSource('')">全部来源</button>
+              <button v-for="source in activeSources" :key="source.key" type="button" class="filter-chip" :class="{ active: selectedSource === source.key }" :aria-pressed="selectedSource === source.key" @click="selectSource(source.key)">{{ source.name }}</button>
+            </div>
+          </div>
+          <div class="topic-filter-row" role="group" aria-label="按官网分类筛选">
+            <span class="filter-label">官网分类</span>
+            <div class="filter-group"><button v-for="category in categories" :key="category" type="button" class="filter-chip" :class="{ active: selectedCategory === category }" :aria-pressed="selectedCategory === category" @click="selectCategory(category)">{{ category }}</button></div>
+          </div>
+        </nav>
         <section class="event-list console-panel"><div v-if="!articles.length && !loading" class="empty-feed"><h3>该分类暂无文章</h3><p>切换到“全部”查看已采集内容。</p></div><div class="signal-article-grid"><button v-for="article in articles" :key="article.id" class="signal-article-card" @click="openArticle(article)"><div class="article-topics"><span v-for="topic in article.topics" :key="topic">{{ topic }}</span></div><h2>{{ article.title }}</h2><p v-if="article.summary">{{ article.summary }}</p><footer><span>{{ article.author_name }}</span><time>{{ new Date(article.published_at).toLocaleDateString('zh-CN') }}</time></footer></button></div></section>
       </section>
 

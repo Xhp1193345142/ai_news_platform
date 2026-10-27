@@ -29,6 +29,18 @@ async def test_article_feed_only_returns_chinese_language_articles() -> None:
     )
 
 
+@pytest.mark.asyncio
+async def test_article_feed_can_filter_by_active_source_key() -> None:
+    session = CapturingSession()
+
+    await list_articles(session, limit=20, source_key="openai")
+
+    compiled = session.statement.compile()
+    assert "article_sources" in str(session.statement)
+    assert "sources.key" in str(session.statement)
+    assert "openai" in compiled.params.values()
+
+
 def test_article_response_hides_english_descriptions() -> None:
     article = ArticleListItem(
         id="91a58ab0-85cd-4f57-a4a6-244b4d780fbf",

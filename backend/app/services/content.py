@@ -6,7 +6,7 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.content import Article, Source
+from app.models.content import Article, ArticleSource, Source
 
 
 def encode_cursor(published_at: datetime, article_id: UUID) -> str:
@@ -27,6 +27,7 @@ async def list_articles(
     limit: int,
     cursor: str | None = None,
     category: str | None = None,
+    source_key: str | None = None,
 ) -> tuple[list[Article], str | None]:
     statement = (
         select(Article)
@@ -37,6 +38,13 @@ async def list_articles(
     )
     if category:
         statement = statement.where(Article.topics.contains([category]))
+    if source_key:
+        matching_article_ids = (
+            select(ArticleSource.article_id)
+            .join(Source, ArticleSource.source_id == Source.id)
+            .where(Source.key == source_key, Source.is_active.is_(True))
+        )
+        statement = statement.where(Article.id.in_(matching_article_ids))
     if cursor:
         published_at, article_id = decode_cursor(cursor)
         statement = statement.where(
