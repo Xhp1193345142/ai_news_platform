@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ContentBlock(BaseModel):
@@ -22,6 +22,13 @@ class ArticleListItem(BaseModel):
     language: str
     topics: list[str]
     canonical_url: str
+
+    @field_validator("subtitle", "summary", mode="before")
+    @classmethod
+    def omit_non_chinese_descriptions(cls, value: str | None) -> str | None:
+        if value is not None and not any("\u3400" <= char <= "\u9fff" for char in value):
+            return None
+        return value
 
 
 class ArticleDetail(ArticleListItem):

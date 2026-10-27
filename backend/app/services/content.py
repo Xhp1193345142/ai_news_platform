@@ -29,7 +29,11 @@ async def list_articles(
     category: str | None = None,
 ) -> tuple[list[Article], str | None]:
     statement = (
-        select(Article).order_by(Article.published_at.desc(), Article.id.desc()).limit(limit + 1)
+        select(Article)
+        .where(Article.language.like("zh%"))
+        .where(Article.title.op("~")("[\u3400-\u4dbf\u4e00-\u9fff]"))
+        .order_by(Article.published_at.desc(), Article.id.desc())
+        .limit(limit + 1)
     )
     if category:
         statement = statement.where(Article.topics.contains([category]))

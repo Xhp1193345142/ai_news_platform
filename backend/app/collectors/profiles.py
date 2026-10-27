@@ -35,12 +35,8 @@ OPENAI_LAYOUT_PROFILE = SourceLayoutProfile(
         "benchmark charts use source Vega-Lite specs grouped by source tabs",
         "presentation examples use ordered slide carousels",
     ),
-    media_policy=(
-        "Archive the raw HTML in MinIO, mirror images, and retain trusted Vimeo embeds."
-    ),
-    fallback_policy=(
-        "Preserve order; render a source link for unsupported components and record their type."
-    ),
+    media_policy=("Archive the raw HTML in MinIO, mirror images, and retain trusted Vimeo embeds."),
+    fallback_policy=("Use Chinese source pages; preserve order and link unsupported components."),
 )
 
 

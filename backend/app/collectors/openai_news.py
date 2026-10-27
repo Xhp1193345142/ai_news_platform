@@ -60,6 +60,11 @@ RSS_CATEGORY_NAMES = {
     "Publication": "刊发",
     "Release": "发布",
 }
+CJK_TEXT_PATTERN = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
+
+
+def _contains_cjk(value: str | None) -> bool:
+    return bool(value and CJK_TEXT_PATTERN.search(value))
 
 
 @dataclass(frozen=True)
@@ -462,7 +467,7 @@ def html_article_to_blocks(
     return blocks
 
 
-def html_article_metadata(document: str) -> tuple[str | None, str | None]:
+def html_article_metadata(document: str) -> tuple[str | None, str | None, str | None]:
     parser = _ArticleHTMLParser()
     parser.feed(document)
     main = _find_main(parser.stack[0])
@@ -470,7 +475,21 @@ def html_article_metadata(document: str) -> tuple[str | None, str | None]:
     html_node = _find_first(parser.stack[0], "html")
     title = _plain_text(title_node) if title_node else None
     language = html_node["attrs"].get("lang") if html_node else None
-    return title or None, language
+    description = None
+    pending = [parser.stack[0]]
+    while pending:
+        node = pending.pop()
+        if node["tag"] == "meta":
+            attrs = node["attrs"]
+            marker = str(attrs.get("name") or attrs.get("property") or "").lower()
+            if marker in {"description", "og:description"}:
+                description = attrs.get("content")
+                if description:
+                    break
+        pending.extend(child for child in node["children"] if isinstance(child, dict))
+    if description:
+        description = re.sub(r"\s+", " ", unescape(description)).strip()
+    return title or None, language, description or None
 
 
 def normalize_openai_news_item(item: OpenAINewsItem, document: str) -> NormalizedArticle:
@@ -498,9 +517,30 @@ def normalize_openai_news_item(item: OpenAINewsItem, document: str) -> Normalize
                     },
                 },
             )
-    source_title, source_language = html_article_metadata(document)
-    title = source_title or item.title
+    source_title, source_language, source_summary = html_article_metadata(document)
     language = source_language or item.language
+    if not language.lower().startswith("zh"):
+        raise ValueError(f"OpenAI returned {language!r} content for a Chinese article request")
+    # The zh-Hans-CN shell sometimes includes the English article title/description.
+    # Prefer localized CMS metadata when it exists, and never expose RSS English text.
+    title = source_title if _contains_cjk(source_title) else item.title
+    if not _contains_cjk(title):
+        raise ValueError("OpenAI Chinese article has no Chinese title")
+    summary = (
+        source_summary
+        if _contains_cjk(source_summary)
+        else item.summary
+        if item.language.lower().startswith("zh") and _contains_cjk(item.summary)
+        else None
+    )
+    body_text = " ".join(
+        str(value)
+        for block in blocks
+        for value in block.get("data", {}).values()
+        if isinstance(value, str)
+    )
+    if not _contains_cjk(body_text):
+        raise ValueError("OpenAI Chinese article page contains no Chinese body text")
     raw_payload = {
         "source": "openai",
         "listing": item.raw_payload or {},
@@ -519,7 +559,7 @@ def normalize_openai_news_item(item: OpenAINewsItem, document: str) -> Normalize
         canonical_url=item.canonical_url,
         title=title,
         subtitle=None,
-        summary=item.summary,
+        summary=summary,
         author_name="OpenAI",
         published_at=item.published_at,
         language=language,
@@ -567,49 +607,58 @@ class OpenAINewsClient:
         return response
 
     def list_articles(self, since: date) -> list[OpenAINewsItem]:
+        rows: list[OpenAINewsItem] = []
         if self.has_cookie:
             page_queries = json.dumps(
                 [{"pageTypes": ["Article"], "categories": list(OPENAI_CATEGORY_SLUGS)}],
                 separators=(",", ":"),
             )
-            rows: list[OpenAINewsItem] = []
-            for skip in range(0, 5000, 9):
-                response = self.get(
-                    OPENAI_ARTICLES_API,
-                    params={
-                        "locale": "zh-Hans-CN",
-                        "pageQueries": page_queries,
-                        "limit": 9,
-                        "skip": skip,
-                        "sort": "new",
-                        "groupedTags": "",
-                        "search": "",
-                    },
-                    headers={"Referer": f"{OPENAI_BASE_URL}/zh-Hans-CN/news/"},
-                )
-                if response.status_code == 403:
-                    break
-                response.raise_for_status()
-                payload = response.json()
-                page = parse_articles_api_payload(payload, since)
-                rows.extend(page)
-                items = payload.get("items", [])
-                if (
-                    not items
-                    or len(items) < 9
-                    or any(
-                        isinstance(item, dict)
-                        and isinstance(item.get("publicationDate"), str)
-                        and not publication_is_since(item["publicationDate"], since)
-                        for item in items
+            try:
+                for skip in range(0, 5000, 9):
+                    response = self.get(
+                        OPENAI_ARTICLES_API,
+                        params={
+                            "locale": "zh-Hans-CN",
+                            "pageQueries": page_queries,
+                            "limit": 9,
+                            "skip": skip,
+                            "sort": "new",
+                            "groupedTags": "",
+                            "search": "",
+                        },
+                        headers={"Referer": f"{OPENAI_BASE_URL}/zh-Hans-CN/news/"},
                     )
-                ):
-                    break
-            if rows:
-                return _deduplicate_items(rows)
-        response = self.get(OPENAI_RSS_URL)
-        response.raise_for_status()
-        return _deduplicate_items(parse_openai_rss(response.text, since))
+                    if response.status_code == 403:
+                        break
+                    response.raise_for_status()
+                    payload = response.json()
+                    rows.extend(parse_articles_api_payload(payload, since))
+                    items = payload.get("items", [])
+                    if (
+                        not items
+                        or len(items) < 9
+                        or any(
+                            isinstance(item, dict)
+                            and isinstance(item.get("publicationDate"), str)
+                            and not publication_is_since(item["publicationDate"], since)
+                            for item in items
+                        )
+                    ):
+                        break
+            except (httpx.HTTPError, ValueError):
+                # RSS remains a useful, independent discovery source when this
+                # internal endpoint is incomplete, blocked, or temporarily malformed.
+                pass
+
+        rss_rows: list[OpenAINewsItem] = []
+        try:
+            response = self.get(OPENAI_RSS_URL)
+            response.raise_for_status()
+            rss_rows = parse_openai_rss(response.text, since)
+        except httpx.HTTPError:
+            if not rows:
+                raise
+        return _deduplicate_items([*rows, *rss_rows])
 
     def fetch_article(self, item: OpenAINewsItem) -> str:
         response = self.get(item.canonical_url)

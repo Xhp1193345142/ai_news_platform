@@ -63,6 +63,7 @@ When implementing from a selected generated mock, treat that image as the source
 - OpenAI 文章中的交互演示媒体必须保留官网编排语义：同一演示组使用顶部胶囊选项卡切换，下方只展示当前媒体；不得把组内视频拆成连续纵向列表。
 - 每个资讯平台在接入前必须建立并维护 `来源布局画像.md` 与代码侧 `SourceLayoutProfile`，记录原生组件、分组、顺序、媒体归档和降级规则；格式化器不得静默丢弃图表、轮播或平台专属组件。
 - OpenAI 评测图表必须从 RSC payload 保留原始 Vega-Lite spec，按官网 tab 组展示；不得用摘要、普通表格或自造图形替代互动图表。
+- OpenAI 文章必须优先抓取 `/zh-Hans-CN/` 页面，并只将页面语言为中文的正文、标题和描述写入及展示；RSS 英文标题和摘要仅用于发现候选文章，不得显示为中文资讯内容。未提供中文版的文章暂不入库。
 - 多平台采集采用“平台 Collector + 平台 Formatter + SourceLayoutProfile + fixture”确定性链路；Agent 只能辅助未知组件识别、质量检查和规则草稿生成，不得直接改写正文或写入生产文章。
 
 Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts/prepare-sites-build.mjs`, and `tests/sites-worker.test.mjs` intact so the same local prototype can be handed to Sites. Before a Sites handoff, run `npm run check`; the build must leave `dist/client/index.html`, `dist/server/index.js`, and `dist/.openai/hosting.json`.

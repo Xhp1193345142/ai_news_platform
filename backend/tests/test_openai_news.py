@@ -2,9 +2,16 @@ import json
 from datetime import date
 from pathlib import Path
 
+import httpx
+import pytest
+
 from app.collectors.openai_news import (
+    OPENAI_ARTICLES_API,
+    OPENAI_RSS_URL,
+    OpenAINewsClient,
     html_article_to_blocks,
     month_start,
+    normalize_openai_news_item,
     parse_articles_api_payload,
     parse_openai_rss,
 )
@@ -43,6 +50,35 @@ def test_openai_rss_uses_month_cutoff_and_maps_official_categories() -> None:
     assert items[0].canonical_url == "https://openai.com/zh-Hans-CN/index/october-story/"
 
 
+def test_client_merges_api_and_rss_so_partial_api_results_do_not_hide_articles() -> None:
+    payload = json.loads((FIXTURES / "news-list.json").read_text())
+    rss = """<rss><channel>
+      <item><title>API duplicate</title>
+        <link>https://openai.com/index/building-scientific-understanding-with-academic-communities</link>
+        <pubDate>Mon, 26 Oct 2026 14:30:00 GMT</pubDate></item>
+      <item><title>RSS-only story</title><link>https://openai.com/index/rss-only-story</link>
+        <pubDate>Fri, 23 Oct 2026 14:30:00 GMT</pubDate></item>
+    </channel></rss>"""
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        if str(request.url).startswith(OPENAI_ARTICLES_API):
+            return httpx.Response(200, json=payload)
+        if str(request.url) == OPENAI_RSS_URL:
+            return httpx.Response(200, text=rss)
+        raise AssertionError(f"unexpected request: {request.url}")
+
+    http_client = httpx.Client(transport=httpx.MockTransport(respond))
+    client = OpenAINewsClient(client=http_client, cookie="session-cookie")
+    try:
+        items = client.list_articles(date(2026, 10, 1))
+    finally:
+        http_client.close()
+
+    assert len(items) == 2
+    assert items[0].title == "携手学术界，深化科学认识"
+    assert items[1].title == "RSS-only story"
+
+
 def test_article_html_becomes_ordered_blocks_without_table_of_contents() -> None:
     document = (FIXTURES / "article.html").read_text()
     blocks = html_article_to_blocks(
@@ -58,15 +94,79 @@ def test_article_html_becomes_ordered_blocks_without_table_of_contents() -> None
         "video_embed",
         "source_link",
     ]
-    assert blocks[0]["data"]["text"] == ("We are sharing research updates with the community.")
+    assert blocks[0]["data"]["text"] == "我们分享了与社区共同开展的研究进展。"
     assert blocks[0]["data"]["links"] == [
-        {"text": "research updates", "url": "https://openai.com/research/"}
+        {"text": "研究进展", "url": "https://openai.com/research/"}
     ]
     assert blocks[1]["data"] == {
-        "items": ["First release strategy", "Second release strategy"],
+        "items": ["第一项发布策略", "第二项发布策略"],
         "ordered": False,
     }
     assert blocks[4]["data"]["url"] == "https://images.ctfassets.net/example/image.webp"
+
+
+def test_normalizer_uses_chinese_page_title_summary_and_body() -> None:
+    payload = json.loads((FIXTURES / "news-list.json").read_text())
+    item = parse_articles_api_payload(payload, date(2026, 10, 1))[0]
+    document = (FIXTURES / "article.html").read_text()
+
+    article = normalize_openai_news_item(item, document)
+
+    assert article.title == "携手学术界，深化科学认识"
+    assert article.language == "zh-Hans-CN"
+    assert article.summary == "与学术界合作，推动科学理解。"
+    assert article.content_blocks[0]["data"]["text"] == "我们分享了与社区共同开展的研究进展。"
+
+
+def test_normalizer_rejects_english_article_pages_for_chinese_requests() -> None:
+    payload = json.loads((FIXTURES / "news-list.json").read_text())
+    item = parse_articles_api_payload(payload, date(2026, 10, 1))[0]
+    document = (FIXTURES / "article.html").read_text().replace('lang="zh-Hans-CN"', 'lang="en"')
+
+    with pytest.raises(ValueError, match="Chinese article request"):
+        normalize_openai_news_item(item, document)
+
+
+def test_normalizer_uses_chinese_listing_title_when_page_heading_is_english() -> None:
+    payload = json.loads((FIXTURES / "news-list.json").read_text())
+    item = parse_articles_api_payload(payload, date(2026, 10, 1))[0]
+    document = (FIXTURES / "article.html").read_text()
+    document = document.replace("携手学术界，深化科学认识", "Building scientific understanding")
+    document = document.replace("与学术界合作，推动科学理解。", "Working with academic communities")
+
+    article = normalize_openai_news_item(item, document)
+
+    assert article.title == "携手学术界，深化科学认识"
+    assert article.summary == "OpenAI 分享研究成果及合作方式。"
+
+
+def test_normalizer_omits_english_summary_and_rejects_all_english_article_text() -> None:
+    payload = json.loads((FIXTURES / "news-list.json").read_text())
+    item = parse_articles_api_payload(payload, date(2026, 10, 1))[0]
+    document = (FIXTURES / "article.html").read_text()
+    document = document.replace("与学术界合作，推动科学理解。", "Working with academic communities")
+
+    article = normalize_openai_news_item(item, document)
+    assert article.summary == "OpenAI 分享研究成果及合作方式。"
+
+    english_item = item.__class__(
+        external_id="english-only",
+        title="Building scientific understanding",
+        canonical_url=item.canonical_url,
+        published_at=item.published_at,
+        topics=item.topics,
+        summary="Working with academic communities",
+        raw_payload={},
+    )
+    english_document = document.replace(
+        "携手学术界，深化科学认识", "Building scientific understanding"
+    )
+    english_document = english_document.replace(
+        "我们分享了与社区共同开展的研究进展。", "We share research progress with the community."
+    )
+
+    with pytest.raises(ValueError, match="no Chinese title"):
+        normalize_openai_news_item(english_item, english_document)
 
 
 def test_month_start_uses_explicit_date() -> None:
