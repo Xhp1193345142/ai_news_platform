@@ -1,0 +1,22 @@
+{
+  "externalId": "gpt-5-6",
+  "canonicalUrl": "https://openai.com/zh-Hans-CN/index/gpt-5-6/",
+  "title": "GPT‑5.6：随宏大目标灵活扩展的前沿智能",
+  "subtitle": "每个 Token 都蕴含更多智能，更优的每美元性能，并可按需为最具挑战的任务提供更强能力",
+  "summary": "OpenAI 发布 GPT‑5.6 Sol、Terra 与 Luna，重点介绍编程、知识工作、网络安全、科学、安全机制及定价。",
+  "authorName": "OpenAI",
+  "publishedAt": "2026-07-09T00:00:00Z",
+  "language": "zh-Hans-CN",
+  "topics": ["模型", "产品", "发布"],
+  "blocks": [
+    {"id":"gpt-intro","type":"paragraph","data":{"text":"GPT‑5.6 系列包含旗舰模型 Sol、均衡模型 Terra 和高性价比模型 Luna，强调以更少 Token 和更低预估成本完成复杂工作。"}},
+    {"id":"gpt-efficient","type":"section","data":{"title":"默认高效运作，按需释放强劲性能","paragraphs":["Sol 面向高难度编程和长周期智能体工作；max 提供更长推理时间，ultra 可协调并行智能体。","文章给出了多项编程、终端和真实代码库评估结果。"]}},
+    {"id":"gpt-chart","type":"chart","data":{"title":"模型层级与定位","series":[{"name":"Sol","value":3,"label":"旗舰"},{"name":"Terra","value":2,"label":"均衡"},{"name":"Luna","value":1,"label":"高性价比"}],"note":"此图为文章信息的结构化展示，不代表性能比例。"}},
+    {"id":"gpt-design","type":"section","data":{"title":"设计能力与知识型工作","paragraphs":["文章展示了游戏、网站、演示文稿、文档和电子表格等产出场景，并强调模型能够检查和优化渲染结果。"]}},
+    {"id":"gpt-quote","type":"quote","data":{"text":"GPT‑5.6 在长周期任务、工具调用与报告可视化方面得到多家早期合作伙伴评价。","attribution":"OpenAI 文章中的客户评价汇总"}},
+    {"id":"gpt-safety","type":"section","data":{"title":"安全、可用性与定价","paragraphs":["OpenAI 描述了模型内置防御、实时校验、持续监控和账户级干预组成的分层保护体系。","GPT‑5.6 已面向 ChatGPT、Codex 与 API 分阶段提供，并提供 Sol、Terra、Luna 三种层级。"]}},
+    {"id":"gpt-source","type":"source_link","data":{"label":"在 OpenAI 阅读完整原文与交互内容","url":"https://openai.com/zh-Hans-CN/index/gpt-5-6/"}}
+  ],
+  "metrics": {},
+  "sourceNote": "基于公开页面结构化整理；复杂交互和完整图表保留原文入口。"
+}

@@ -8,6 +8,8 @@ import { authenticate, clearSession, fetchCurrentUser, getStoredSession, refresh
 const mode = ref("login");
 const showPassword = ref(false);
 const isTransitioning = ref(false);
+const isConsoleVisible = ref(false);
+const isCentering = ref(false);
 const currentUser = ref(null);
 const isSubmitting = ref(false);
 const email = ref("");
@@ -16,7 +18,7 @@ const confirmPassword = ref("");
 const feedback = ref("");
 const blackHoleCanvas = ref(null);
 const isLogin = computed(() => mode.value === "login");
-const hasEntered = computed(() => Boolean(currentUser.value));
+const hasEntered = computed(() => Boolean(currentUser.value) && isConsoleVisible.value);
 const heading = computed(() => (isLogin.value ? "欢迎回来" : "创建你的观测站"));
 const helper = computed(() => isLogin.value ? "进入事件视界，看见 AI 的下一步" : "定制主题，追踪你关心的 AI 信号");
 const submitLabel = computed(() => (isLogin.value ? "进入事件视界" : "创建账户"));
@@ -33,7 +35,13 @@ async function submit() {
     const session = await authenticate(isLogin.value ? "login" : "register", { email: email.value, password: password.value });
     blackHoleCanvas.value?.triggerGlitch();
     isTransitioning.value = true;
-    window.setTimeout(() => { currentUser.value = session.user; isTransitioning.value = false; }, 800);
+    // Let the glitch build first, then hide the lens shift within its peak.
+    window.setTimeout(() => { isCentering.value = true; }, 150);
+    window.setTimeout(() => {
+      currentUser.value = session.user;
+      isConsoleVisible.value = true;
+      isTransitioning.value = false;
+    }, 1000);
   } catch (error) {
     feedback.value = error instanceof Error ? error.message : "认证失败，请稍后重试";
   } finally {
@@ -45,6 +53,8 @@ async function logout() {
   const session = getStoredSession();
   try { await revokeSession(session?.refresh_token); } catch { clearSession(); }
   currentUser.value = null;
+  isConsoleVisible.value = false;
+  isCentering.value = false;
   isTransitioning.value = false;
   password.value = "";
   feedback.value = "";
@@ -54,10 +64,12 @@ onMounted(async () => {
   if (!session?.access_token) return;
   try {
     currentUser.value = await fetchCurrentUser(session.access_token);
+    isConsoleVisible.value = true;
   } catch {
     try {
       const refreshedSession = await refreshSession(session.refresh_token);
       currentUser.value = refreshedSession.user;
+      isConsoleVisible.value = true;
     } catch {
       clearSession();
     }
@@ -67,8 +79,7 @@ onMounted(async () => {
 
 <template>
   <main class="auth-experience" :class="{ 'is-transitioning': isTransitioning, 'has-entered': hasEntered }">
-    <img class="space-background" src="/assets/deep-space-stable-v1.png" alt="安静的深空星野" />
-    <div class="black-hole-system"><BlackHoleCanvas ref="blackHoleCanvas" :scene-mode="hasEntered ? 'console' : 'auth'" /></div>
+    <div class="black-hole-system"><BlackHoleCanvas ref="blackHoleCanvas" :scene-mode="isCentering || hasEntered ? 'console' : 'auth'" /></div>
     <div class="space-veil" aria-hidden="true" />
     <section class="scene-copy" aria-label="产品介绍">
       <p class="eyebrow"><span /> AI NEWS INTELLIGENCE</p>
@@ -92,6 +103,6 @@ onMounted(async () => {
       <div class="social-actions"><button type="button" @click="continueWith('GitHub')"><Icon icon="mdi:github" />继续使用 GitHub {{ isLogin ? "登录" : "注册" }}</button><button type="button" @click="continueWith('Google')"><Icon icon="logos:google-icon" />继续使用 Google {{ isLogin ? "登录" : "注册" }}</button></div>
       <p class="mode-switch">{{ isLogin ? "还没有账号？" : "已有账户？" }}<button type="button" @click="changeMode(isLogin ? 'register' : 'login')">{{ isLogin ? "注册" : "登录" }}</button></p>
     </section>
-    <SignalConsole v-else :user="currentUser" @logout="logout" />
+    <Transition name="console-reveal"><SignalConsole v-if="hasEntered" :user="currentUser" @logout="logout" /></Transition>
   </main>
 </template>
