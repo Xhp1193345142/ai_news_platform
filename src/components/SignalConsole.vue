@@ -67,6 +67,42 @@ function activeMediaItem(block) {
 function selectMediaTab(block, index) {
   selectedMediaTabs.value = { ...selectedMediaTabs.value, [block.id]: index };
 }
+function moveCarousel(block, direction) {
+  const items = block.data.items ?? [];
+  if (!items.length) return;
+  const current = selectedMediaTabs.value[block.id] ?? 0;
+  selectedMediaTabs.value = { ...selectedMediaTabs.value, [block.id]: (current + direction + items.length) % items.length };
+}
+function carouselItem(block) {
+  const items = block.data.items ?? [];
+  return items[selectedMediaTabs.value[block.id] ?? 0] ?? items[0];
+}
+function safeSourceUrl(value) {
+  try {
+    const url = new URL(value, window.location.origin);
+    return ["https:", "http:"].includes(url.protocol) ? url.href : selectedArticle.value?.canonical_url;
+  } catch {
+    return selectedArticle.value?.canonical_url;
+  }
+}
+function paragraphSegments(block) {
+  const source = block.data.text ?? "";
+  const links = [...(block.data.links ?? [])]
+    .filter((link) => link.text && link.url)
+    .map((link) => ({ ...link, index: source.indexOf(link.text) }))
+    .filter((link) => link.index >= 0)
+    .sort((left, right) => left.index - right.index);
+  const segments = [];
+  let cursor = 0;
+  for (const link of links) {
+    if (link.index < cursor) continue;
+    if (link.index > cursor) segments.push({ text: source.slice(cursor, link.index) });
+    segments.push({ text: link.text, url: link.url });
+    cursor = link.index + link.text.length;
+  }
+  if (cursor < source.length || !segments.length) segments.push({ text: source.slice(cursor) });
+  return segments;
+}
 
 onMounted(loadContent);
 </script>
@@ -89,11 +125,15 @@ onMounted(loadContent);
         <header class="reader-header"><div class="reader-meta"><time>{{ new Date(selectedArticle.published_at).toLocaleDateString('zh-CN') }}</time><div class="article-topics"><span v-for="topic in selectedArticle.topics" :key="topic">{{ topic }}</span></div></div><h1>{{ selectedArticle.title }}</h1><p v-if="selectedArticle.subtitle" class="reader-subtitle">{{ selectedArticle.subtitle }}</p><span class="reader-author">{{ selectedArticle.author_name }}</span></header>
         <div class="reader-body">
           <template v-for="block in selectedArticle.content_blocks" :key="block.id">
-            <p v-if="block.type === 'paragraph'" class="reader-paragraph">{{ blockText(block) }}</p>
+            <p v-if="block.type === 'paragraph'" class="reader-paragraph"><template v-for="(segment, segmentIndex) in paragraphSegments(block)" :key="block.id + '-segment-' + segmentIndex"><a v-if="segment.url" :href="safeSourceUrl(segment.url)" target="_blank" rel="noreferrer">{{ segment.text }}</a><template v-else>{{ segment.text }}</template></template></p>
             <component :is="`h${Math.min(Math.max(block.data.level ?? 2, 2), 4)}`" v-else-if="block.type === 'heading'" class="reader-source-heading">{{ block.data.text }}</component>
             <ol v-else-if="block.type === 'list' && block.data.ordered" class="reader-source-list"><li v-for="item in block.data.items" :key="item">{{ item }}</li></ol>
             <ul v-else-if="block.type === 'list'" class="reader-source-list"><li v-for="item in block.data.items" :key="item">{{ item }}</li></ul>
             <figure v-else-if="block.type === 'image'" class="reader-media"><img :src="block.data.url" :alt="block.data.alt" loading="lazy" /><figcaption v-if="block.data.alt">{{ block.data.alt }}</figcaption></figure>
+            <section v-else-if="block.type === 'image_carousel' && block.data.items?.length" class="reader-carousel" :aria-label="block.data.label || '文章图片轮播'">
+              <div class="carousel-heading"><span>{{ carouselItem(block).label || carouselItem(block).alt || ('图片 ' + ((selectedMediaTabs[block.id] ?? 0) + 1)) }}</span><div><button type="button" aria-label="上一张图片" @click="moveCarousel(block, -1)">‹</button><button type="button" aria-label="下一张图片" @click="moveCarousel(block, 1)">›</button></div></div>
+              <figure class="reader-media carousel-media"><img :src="carouselItem(block).url" :alt="carouselItem(block).alt || carouselItem(block).label || ''" loading="lazy" /><figcaption>{{ (selectedMediaTabs[block.id] ?? 0) + 1 }} / {{ block.data.items.length }}</figcaption></figure>
+            </section>
             <figure v-else-if="block.type === 'video_embed'" class="reader-media reader-video"><div><iframe :src="block.data.embed_url" :title="block.data.alt || 'OpenAI 视频'" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen /></div><figcaption v-if="block.data.alt">{{ block.data.alt }}</figcaption></figure>
             <section v-else-if="block.type === 'media_tabs'" class="reader-media-tabs">
               <div class="media-tab-list" role="tablist" aria-label="交互演示">
@@ -112,6 +152,7 @@ onMounted(loadContent);
             <blockquote v-else-if="block.type === 'quote'"><p>{{ block.data.text }}</p><cite>{{ block.data.attribution }}</cite></blockquote>
             <figure v-else-if="block.type === 'chart'" class="reader-chart"><figcaption>{{ block.data.title }}</figcaption><div v-for="item in block.data.series" :key="item.name" class="chart-row"><span>{{ item.name }}</span><i :style="{ width: `${item.value * 28}%` }" /><b>{{ item.label }}</b></div><small>{{ block.data.note }}</small></figure>
             <a v-else-if="block.type === 'source_link'" class="source-link" :href="block.data.url" target="_blank" rel="noreferrer">{{ block.data.label }}<Icon icon="solar:arrow-right-up-linear" /></a>
+            <aside v-else-if="block.type === 'unsupported_embed'" class="reader-unsupported"><div><strong>{{ block.data.label || '官网交互内容' }}</strong><p>{{ block.data.description || '此内容暂未支持站内呈现，原文入口保留。' }}</p></div><a :href="safeSourceUrl(block.data.fallback_url || block.data.source_url)" target="_blank" rel="noreferrer">查看 OpenAI 原文<Icon icon="solar:arrow-right-up-linear" /></a></aside>
           </template>
         </div>
       </article>

@@ -34,3 +34,19 @@ def test_extract_openai_chart_specs_from_rsc_payload() -> None:
     assert len(specs) == 1
     assert specs[0]["title"]["text"] == "BrowseComp"
     assert specs[0]["data"]["values"] == [{"score": 92.2}]
+
+
+def test_extract_openai_chart_specs_accepts_string_titles_from_source() -> None:
+    payload = (
+        '42:["$","chart",null,{"vegaLiteSpec":'
+        '{"$schema":"https://vega.github.io/schema/vega-lite/v6.json",'
+        '"title":"平均测试通过率","data":{"values":[{"score":92.2}]},'
+        '"mark":"bar","encoding":{}}}]'
+    )
+    encoded = json.dumps(payload, ensure_ascii=False)
+    document = f"<html><script>self.__next_f.push([1, {encoded}])</script></html>"
+
+    specs = extract_openai_chart_specs(document)
+
+    assert len(specs) == 1
+    assert specs[0]["title"] == "平均测试通过率"

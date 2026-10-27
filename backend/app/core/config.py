@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Annotated
 
-from pydantic import Field, field_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     s3_public_bucket: str = "ai-signal-public"
     s3_archive_bucket: str = "ai-signal-archive"
     s3_region: str = "us-east-1"
+    openai_cookie: SecretStr | None = None
     jwt_secret_key: str = "replace-with-a-long-random-secret-before-use"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 15

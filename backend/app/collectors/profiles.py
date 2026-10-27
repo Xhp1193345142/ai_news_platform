@@ -13,7 +13,9 @@ class SourceLayoutProfile:
 
 OPENAI_LAYOUT_PROFILE = SourceLayoutProfile(
     source_key="openai",
-    content_root="OpenAI index article / Next.js RSC payload",
+    content_root=(
+        "OpenAI News RSS or /backend/articles/ listing → index article HTML / Next.js RSC payload"
+    ),
     block_types=(
         "paragraph",
         "heading",
@@ -26,14 +28,19 @@ OPENAI_LAYOUT_PROFILE = SourceLayoutProfile(
         "image_carousel",
         "table",
         "source_link",
+        "unsupported_embed",
     ),
     grouped_components=(
         "interactive demos use a pill tablist and one active player",
         "benchmark charts use source Vega-Lite specs grouped by source tabs",
         "presentation examples use ordered slide carousels",
     ),
-    media_policy="Mirror downloadable images to MinIO; retain trusted Vimeo embeds.",
-    fallback_policy="Preserve source order and render an explicit source link when unsupported.",
+    media_policy=(
+        "Archive the raw HTML in MinIO, mirror images, and retain trusted Vimeo embeds."
+    ),
+    fallback_policy=(
+        "Preserve order; render a source link for unsupported components and record their type."
+    ),
 )
 
 

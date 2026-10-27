@@ -77,6 +77,7 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY:-change-me-minio-secret}
       S3_PUBLIC_BUCKET: ${S3_PUBLIC_BUCKET:-ai-signal-public}
       S3_ARCHIVE_BUCKET: ${S3_ARCHIVE_BUCKET:-ai-signal-archive}
+      OPENAI_COOKIE: ${OPENAI_COOKIE:-}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-replace-with-a-long-random-secret-before-use}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-15}

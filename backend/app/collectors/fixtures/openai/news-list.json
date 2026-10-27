@@ -1,0 +1,37 @@
+{
+  "total": 716,
+  "skip": 0,
+  "limit": 9,
+  "items": [
+    {
+      "id": "5euiEKnIjReDewL2VZQyWG",
+      "slug": "index/building-scientific-understanding-with-academic-communities",
+      "title": "携手学术界，深化科学认识",
+      "publicationDate": "2026-10-26T14:30",
+      "categories": [
+        {"name": "研究", "slug": "research"},
+        {"name": "刊发", "slug": "publication"}
+      ],
+      "pageType": "Article",
+      "seoFields": {"metaDescription": "OpenAI 分享研究成果及合作方式。"},
+      "contentKind": "page"
+    },
+    {
+      "id": "older",
+      "slug": "index/older-article",
+      "title": "九月文章",
+      "publicationDate": "2026-09-30T14:30",
+      "categories": [{"name": "研究", "slug": "research"}],
+      "pageType": "Article",
+      "contentKind": "page"
+    },
+    {
+      "id": "external",
+      "title": "外部页面",
+      "publicationDate": "2026-10-26",
+      "categories": [{"name": "安全", "slug": "safety"}],
+      "pageType": "Article",
+      "contentKind": "externalPage"
+    }
+  ]
+}

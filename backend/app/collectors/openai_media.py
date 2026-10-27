@@ -61,7 +61,14 @@ def extract_openai_chart_specs(document: str) -> list[dict[str, Any]]:
         position = end_index
         if not isinstance(spec, dict):
             continue
-        title = spec.get("title", {}).get("text")
+        raw_title = spec.get("title")
+        title = (
+            raw_title
+            if isinstance(raw_title, str)
+            else raw_title.get("text")
+            if isinstance(raw_title, dict)
+            else None
+        )
         if isinstance(title, str) and title not in seen_titles:
             specs.append(spec)
             seen_titles.add(title)
