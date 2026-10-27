@@ -681,3 +681,14 @@ def _deduplicate_items(items: list[OpenAINewsItem]) -> list[OpenAINewsItem]:
     for item in items:
         unique.setdefault(item.canonical_url, item)
     return sorted(unique.values(), key=lambda item: item.published_at, reverse=True)
+
+
+def filter_uncollected_items(
+    items: list[OpenAINewsItem], existing_canonical_urls: set[str]
+) -> list[OpenAINewsItem]:
+    """De-duplicate discovered links and skip article URLs already stored locally."""
+    return [
+        item
+        for item in _deduplicate_items(items)
+        if item.canonical_url not in existing_canonical_urls
+    ]

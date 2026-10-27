@@ -9,6 +9,7 @@ from app.collectors.openai_news import (
     OPENAI_ARTICLES_API,
     OPENAI_RSS_URL,
     OpenAINewsClient,
+    filter_uncollected_items,
     html_article_to_blocks,
     month_start,
     normalize_openai_news_item,
@@ -48,6 +49,33 @@ def test_openai_rss_uses_month_cutoff_and_maps_official_categories() -> None:
     assert items[0].summary == "A source supplied description"
     assert items[0].published_at.isoformat() == "2026-10-26T14:30:00+00:00"
     assert items[0].canonical_url == "https://openai.com/zh-Hans-CN/index/october-story/"
+
+
+def test_collector_deduplicates_canonical_urls_before_fetch_and_skips_stored_urls() -> None:
+    candidates = parse_openai_rss(
+        """<rss><channel>
+          <item><title>First duplicate</title><link>https://openai.com/index/duplicate</link>
+            <pubDate>Mon, 26 Oct 2026 14:30:00 GMT</pubDate></item>
+          <item><title>Second duplicate</title><link>https://openai.com/zh-Hans-CN/index/duplicate/</link>
+            <pubDate>Mon, 26 Oct 2026 14:30:00 GMT</pubDate></item>
+          <item><title>Already stored</title><link>https://openai.com/index/stored</link>
+            <pubDate>Mon, 26 Oct 2026 14:30:00 GMT</pubDate></item>
+          <item><title>New</title><link>https://openai.com/index/new</link>
+            <pubDate>Mon, 26 Oct 2026 14:30:00 GMT</pubDate></item>
+        </channel></rss>""",
+        date(2026, 10, 1),
+    )
+
+    ready = filter_uncollected_items(
+        candidates,
+        {"https://openai.com/zh-Hans-CN/index/stored/"},
+    )
+
+    assert [item.canonical_url for item in ready] == [
+        "https://openai.com/zh-Hans-CN/index/duplicate/",
+        "https://openai.com/zh-Hans-CN/index/new/",
+    ]
+    assert ready[0].title == "First duplicate"
 
 
 def test_client_merges_api_and_rss_so_partial_api_results_do_not_hide_articles() -> None:

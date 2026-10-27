@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { Icon } from "@iconify/vue";
 import ArticleChartTabs from "./ArticleChartTabs.vue";
 import { fetchArticle, fetchArticles, fetchSources } from "../services/content";
@@ -16,6 +16,7 @@ const selectedCategory = ref("全部");
 const selectedSource = ref("");
 const selectedMediaTabs = ref({});
 const activeSources = computed(() => sources.value.filter((source) => source.is_active));
+let refreshTimer;
 const categories = ["全部", "公司", "研究", "产品", "安全", "工程", "安全防护", "全球事务", "AI 采用", "应用 AI"];
 const views = [
   { label: "概览", icon: "solar:widget-5-linear" },
@@ -120,7 +121,13 @@ function paragraphSegments(block) {
   return segments;
 }
 
-onMounted(loadContent);
+onMounted(() => {
+  loadContent();
+  refreshTimer = window.setInterval(() => {
+    if (document.visibilityState === "visible") loadContent();
+  }, 5 * 60 * 1000);
+});
+onUnmounted(() => window.clearInterval(refreshTimer));
 </script>
 
 <template>

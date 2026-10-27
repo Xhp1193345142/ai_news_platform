@@ -13,7 +13,12 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 from app.collectors.openai import NormalizedArticle
-from app.collectors.openai_news import OpenAINewsClient, month_start, normalize_openai_news_item
+from app.collectors.openai_news import (
+    OpenAINewsClient,
+    filter_uncollected_items,
+    month_start,
+    normalize_openai_news_item,
+)
 from app.core.config import settings
 from app.models.content import Article, ArticleSource, CollectionRun, Source
 from app.services.media import get_object_storage_client
@@ -166,8 +171,8 @@ def collect(since: date, dry_run: bool = False, max_articles: int = 500) -> tupl
                 print(f"{item.published_at.date()}\t{item.title}\t{item.canonical_url}")
             return len(items), []
 
-        engine = create_engine(settings.sync_database_url)
         storage = get_object_storage_client()
+        engine = create_engine(settings.sync_database_url)
         errors: list[str] = []
         saved = 0
         with Session(engine) as session:
@@ -187,13 +192,27 @@ def collect(since: date, dry_run: bool = False, max_articles: int = 500) -> tupl
             session.flush()
             try:
                 ensure_storage_buckets(storage)
-                items = client.list_articles(since)[:max_articles]
+                candidates = client.list_articles(since)
+                candidate_urls = {item.canonical_url for item in candidates}
+                existing_urls = (
+                    set(
+                        session.scalars(
+                            select(Article.canonical_url).where(
+                                Article.canonical_url.in_(candidate_urls)
+                            )
+                        ).all()
+                    )
+                    if candidate_urls
+                    else set()
+                )
+                items = filter_uncollected_items(candidates, existing_urls)[:max_articles]
             except Exception as error:
                 run.status = "failed"
                 run.finished_at = datetime.now(UTC)
                 run.retry_count = client.retry_count
                 run.error_summary = f"{type(error).__name__}: {error}"
                 session.commit()
+                engine.dispose()
                 raise
             for item in items:
                 try:
@@ -225,6 +244,7 @@ def collect(since: date, dry_run: bool = False, max_articles: int = 500) -> tupl
             run.retry_count = client.retry_count
             run.error_summary = "\n".join(errors[:20]) or None
             session.commit()
+        engine.dispose()
         return saved, errors
 
 
